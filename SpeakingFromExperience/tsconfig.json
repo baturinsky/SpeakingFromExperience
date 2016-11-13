@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "outDir": "./js",
+    "sourceMap": true,
+    "target": "ES5"
+  },
+  "files": [
+    "js-yaml.d.ts",
+    "mithril.d.ts",
+    "pako.d.ts",
+    "hammer.ts",
+    "util.ts",
+    "world.ts",
+    "app.ts"
+  ]
+}

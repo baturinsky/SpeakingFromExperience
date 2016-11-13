@@ -1,0 +1,128 @@
+﻿table, div {
+  font-family: Verdana;
+  font-size: 14px;
+  color: #000;
+  /*border: 1px solid black;*/
+}
+
+.subtleInput {
+  border: none;
+}
+
+.xxlarge {
+  font-size: xx-large;
+}
+
+.larger {
+  font-size: larger;
+}
+
+.faint {
+  opacity: 0.2;
+}
+
+input {
+  font-family: Courier;
+  color: black;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  color: #008;
+  font-family: Verdana;
+}
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+table {
+  border-collapse: collapse;
+}
+
+td.log {
+  color: red;
+}
+
+td.right {
+  text-align: right;
+}
+
+td {
+  border: solid 0px gray;
+  padding: 5px;
+  vertical-align: top;
+}
+
+.commandLog{
+  padding-top: 10px;
+}
+
+/* setup tooltips */
+.tooltip {
+  position: relative;
+}
+
+  .tooltip:before,
+  .tooltip:after {
+    display: block;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  .tooltip:after {
+    border-right: 6px solid transparent;
+    border-bottom: 6px solid rgba(0,0,0,.75);
+    border-left: 6px solid transparent;
+    content: '';
+    height: 0;
+    top: 20px;
+    left: 20px;
+    width: 0;
+  }
+
+  .tooltip:before {
+    background: rgba(0,0,0,.75);
+    border-radius: 2px;
+    color: #fff;
+    content: attr(data-title);
+    font-size: 14px;
+    padding: 6px 10px;
+    top: 26px;
+    left: 10px;
+    white-space: nowrap;
+  }
+
+  /* the animations */
+  /* fade */
+  .tooltip.fade:after,
+  .tooltip.fade:before {
+    transform: translate3d(0,-10px,0);
+    transition: all .15s ease-in-out;
+  }
+
+  .tooltip.fade:hover:after,
+  .tooltip.fade:hover:before {
+    opacity: 1;
+    transform: translate3d(0,0,0);
+    transition-delay: 0.5s;
+  }
+
+.w300 {
+  width: 300px;
+}
+
+.savesTable{
+  border: solid 1px #aaa
+}
+
+.savesTable > td{
+  border: solid 1px #aaa
+}
+
+div.guest {
+  padding-left:10px
+}

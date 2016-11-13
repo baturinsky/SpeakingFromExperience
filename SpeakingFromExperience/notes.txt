@@ -1,0 +1,13 @@
+﻿Speak about...
+
+Person:
+ - we have common interest in <trait>
+ - I know him well. He is good at <skill>
+
+Command (aka Skill):
+ - my friend <person> can give you some advices about <skill>
+ - gives some advice about <skill> helping you get better
+
+ Item (aka Trait):
+ - I have heard <person> likes Trait
+ - if you like <trait>, you want to get better at <skill>
