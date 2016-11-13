@@ -69,11 +69,12 @@ Traits:
       Sculpture:
 
   Amount:
+    Solid:
+      Block:
+      Plank:
+      Ingot:
     Trunk:
     Ore:
-    Block:
-    Plank:
-    Ingot:
     Pile:
     Loaf:
     Meal:
@@ -110,7 +111,7 @@ Traits:
       Electrum:
       Steel:
 
-    Wooden:
+    Wood:
       Oak:
       Birch:
 
@@ -124,6 +125,7 @@ Traits:
     Dead:
     Tired:
     Attention:
+    Entertained:
 
     Room's:
       Outdoor:

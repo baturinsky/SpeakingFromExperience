@@ -43,7 +43,12 @@ table {
 }
 
 td.log {
-  color: red;
+}
+
+div.log {
+  overflow-y: scroll;
+  height: 750px;
+  padding: 5px;
 }
 
 td.right {

@@ -155,6 +155,7 @@ var Freezer = (function () {
     function Freezer() {
         this.constructors = {};
         this.staticObjects = [];
+        this.staticClasses = [];
         this.constructorLookups = [];
         this.uids = Uids.default;
     }
@@ -183,10 +184,12 @@ var Freezer = (function () {
         for (var _i = 0; _i < arguments.length; _i++) {
             staticClasses[_i - 0] = arguments[_i];
         }
+        this.staticClasses = staticClasses;
         var staticObjects = this.staticObjects;
         var uids = this.uids;
         for (var _a = 0, staticClasses_1 = staticClasses; _a < staticClasses_1.length; _a++) {
             var C = staticClasses_1[_a];
+            this.constructors[C.name] = C;
             C.prototype.Tstringifier = C.prototype.Tstringifier || function () {
                 this.id = this.id || uids.make('Fuf');
                 staticObjects[this.id] = this;
@@ -247,6 +250,14 @@ var Freezer = (function () {
         var buf = [];
         var i = 0;
         var freezer = this;
+        for (var _i = 0, _a = this.staticClasses; _i < _a.length; _i++) {
+            var staticClass = _a[_i];
+            if (staticClass.byId) {
+                for (var k in staticClass.byId) {
+                    this.staticObjects[k] = staticClass.byId[k];
+                }
+            }
+        }
         var primitives = { String: true, Number: true, Boolean: true, Array: true };
         function stringifier(k, v) {
             if (v) {
@@ -283,8 +294,8 @@ var Freezer = (function () {
             var stringified = JSON.stringify(a, stringifier);
             bits.push(stringified);
         }
-        for (var _i = 0, Fclassed_1 = Fclassed; _i < Fclassed_1.length; _i++) {
-            var v = Fclassed_1[_i];
+        for (var _b = 0, Fclassed_1 = Fclassed; _b < Fclassed_1.length; _b++) {
+            var v = Fclassed_1[_b];
             delete v["Fclass"];
         }
         return "[" + bits.join(",") + "]";
@@ -298,7 +309,7 @@ var Freezer = (function () {
             }
             return Ref;
         }());
-        var statics = this.staticObjects;
+        var staticObjects = this.staticObjects;
         var objectsWithIds = {};
         var references = [];
         var lookups = this.constructorLookups;
@@ -329,8 +340,9 @@ var Freezer = (function () {
             if (v != null) {
                 if (v.Fref)
                     references.push(new Ref(this, k, v.Fref));
-                if (v.Fuf)
-                    return statics[v.Fuf];
+                if (v.Fuf) {
+                    return staticObjects[v.Fuf];
+                }
             }
             return v;
         });

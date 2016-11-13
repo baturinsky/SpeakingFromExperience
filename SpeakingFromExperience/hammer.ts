@@ -162,6 +162,7 @@ class Channels {
 class Freezer {
   constructors: { [key: string]: any } = {}
   staticObjects = []
+  staticClasses = []
   constructorLookups = []
   uids: Uids = Uids.default
 
@@ -177,10 +178,12 @@ class Freezer {
     return this
   }
 
-  addStaticClasses(...staticClasses: Function[]) {
+  addStaticClasses(...staticClasses) {
+    this.staticClasses = staticClasses
     var staticObjects = this.staticObjects
     var uids = this.uids
     for (let C of staticClasses) {
+      this.constructors[C.name] = C
       C.prototype.Tstringifier = C.prototype.Tstringifier || function () {
         this.id = this.id || uids.make('Fuf')
         staticObjects[this.id] = this
@@ -227,6 +230,14 @@ class Freezer {
 
     var i = 0
     var freezer = this
+
+    for (var staticClass of this.staticClasses) {
+      if (staticClass.byId) {
+        for (var k in staticClass.byId) {
+          this.staticObjects[k] = staticClass.byId[k]
+        }
+      }
+    }
 
     var primitives = { String: true, Number: true, Boolean: true, Array: true }
 
@@ -281,7 +292,7 @@ class Freezer {
       constructor(public parent: any, public key: string, public ref: string) { }
     }
 
-    var statics = this.staticObjects
+    var staticObjects = this.staticObjects
 
     var objectsWithIds = {}
     var references: Ref[] = []
@@ -313,8 +324,9 @@ class Freezer {
       if (v != null) {
         if (v.Fref)
           references.push(new Ref(this, k, v.Fref))
-        if (v.Fuf)
-          return statics[v.Fuf]
+        if (v.Fuf) {
+          return staticObjects[v.Fuf]
+        }
       }
       return v
     })

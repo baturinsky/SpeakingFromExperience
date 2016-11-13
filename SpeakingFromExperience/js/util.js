@@ -212,4 +212,7 @@ function randomNumberMap(nm) {
     }
     return null;
 }
+function span(x) {
+    return m("span", x);
+}
 //# sourceMappingURL=util.js.map

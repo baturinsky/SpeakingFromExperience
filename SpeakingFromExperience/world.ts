@@ -251,7 +251,7 @@ class Character extends Traited {
     world.advance(dt)
 
     this.guests.push(other)
-    other.traits["Attention"] = 0.5
+    other.traits["Attention"] = 1
 
     return other
   }
@@ -265,9 +265,24 @@ class Character extends Traited {
   }
 
   discussWithGuests(topic: string[], duration: number = 0.02) {
-    glog("Discussed " + topic[1])
+    var am = new ActionMemory("discuss", topic)
+
+    var bored = 0
+    for (var logItem of world.gameLog) {
+      if (logItem[1] instanceof ActionMemory && logItem[1].signature == am.signature) {
+        var dt = world.time - logItem[0]
+        bored += 1 / (1 + dt * 30)
+      }
+    }
+    log("bored", bored)
+    glog(am)
+
     for (var g of this.guests) {
-      var speech = g.speakAbout(topic)
+      var speech: Speech
+      if (bored > random())
+        speech = new Speech(g, "bored")
+      else
+        speech = g.speakAbout(topic)
 
       speech.know()
 
@@ -311,6 +326,8 @@ class Character extends Traited {
             return new Speech(this, "interest", Trait.byId[hisInterest], char)
           } else {
             var hisSkill = randomNumberMap(char.skill)
+            log(char.skill)
+            assert(Skill.byId[hisSkill], "no skill named " + hisSkill)
             return new Speech(this, "skill", Skill.byId[hisSkill], char)
           }
         }
@@ -329,7 +346,7 @@ class Character extends Traited {
       case "skill":
         var skill = Skill.byId[detail]
         if (this.skill[detail] > 1) {
-          if (this.traits["Interested"] > random() * 2 + 1) {
+          if (this.attention > random() * 2 + 1) {
             return new Speech(this, "teachSkill", skill)
           } else {
             return new Speech(this, "skill", skill, this)
@@ -403,9 +420,16 @@ class Character extends Traited {
 
 }
 
+class ActionMemory {
+  signature:string
+  constructor(public mode: string, public details: string[]) {
+    this.signature = mode + " " + details.join(",")
+  }
+}
+
 class Speech {
-  constructor(public speaker: Character, public theme, public detail, public more?) {
-    assert(detail)
+  constructor(public speaker: Character, public theme, public detail?, public more?) {
+    assert(detail || theme == "bored")
   }
 
   toString() {
@@ -433,6 +457,7 @@ class Speech {
     var speaker = this.speaker
     switch (this.theme) {
       case "teachSkill":
+        log("TEACHING")
         if (listener == world.you) {
           var skillId = this.detail.id
           var mySkill = speaker.skill[skillId] || 0
@@ -448,12 +473,17 @@ class Speech {
       case "skill":
         var skillId = this.detail.id
         var speakerSkill = speaker.skill[skillId] || 0
-        var listenerSkill = speaker.skill[skillId] || 0
+        var listenerSkill = listener.skill[skillId] || 0
         var combinedSkill = speakerSkill + listenerSkill
         listenerAttention += combinedSkill / 100
         if (speakerSkill > 0) {
-          speaker.skill[skillId] += listenerSkill / 1000
-          listener.skill[skillId] += speakerSkill / 1000
+          listener.skill[skillId] = listenerSkill + speakerSkill / 100
+        }
+        break
+      case "bored":
+        if (listener == speaker) {
+          listenerAttention += -0.05
+          speakerTired += 0.05
         }
         break
     }
@@ -480,7 +510,7 @@ class World {
   characters: { [key: string]: Character } = {}
   time: number = 0
 
-  gameLog = []
+  gameLog: [number, any][] = []
   commandLog = []
   char: Character
 
@@ -489,7 +519,7 @@ class World {
 
     this.you = new Character("Elder")
     this.you.skill = { Foraging: 1, Generic: 1, Speaking: 1, Conservation: 1, Cooking: 1, Gardening: 1 }
-    this.you.traits = { Old: 10000000 }
+    this.you.traits = { Age: 10000000 }
 
     for (var pi in Profession.byId) {
       var profession = Profession.byId[pi]
@@ -548,6 +578,7 @@ class World {
 
     this.you.gainTrait("Hungry", dt)
     this.you.gainTrait("Tired", dt)
+    this.you.gainTrait("Age", dt)
 
     for (var cid in world.characters) {
       var c = world.characters[cid]
@@ -691,6 +722,8 @@ class Command {
       world.advance(0.5)
     }
 
+    glog(new ActionMemory("command", [this.id].concat(subjects)))
+
     if (this.makes) {
       var nowHave = char.receive(this.makes)
       if (char == world.you)
@@ -763,5 +796,5 @@ var category: { [key: string]: WeightedList } = {}
 var world: World
 
 var freezer = new Freezer()
-  .addFreezableClasses(World, Character, Item, Speech)
-  .addStaticClasses(Profession, Skill, Trait, Primary, Command)
+  .addFreezableClasses(World, Character, Item, Speech, ActionMemory)
+  .addStaticClasses(Skill, Trait, Command)

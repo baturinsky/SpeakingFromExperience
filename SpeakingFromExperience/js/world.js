@@ -221,7 +221,7 @@ var Character = (function (_super) {
             return null;
         world.advance(dt);
         this.guests.push(other);
-        other.traits["Attention"] = 0.5;
+        other.traits["Attention"] = 1;
         return other;
     };
     Character.prototype.leave = function (from) {
@@ -234,14 +234,28 @@ var Character = (function (_super) {
     };
     Character.prototype.discussWithGuests = function (topic, duration) {
         if (duration === void 0) { duration = 0.02; }
-        glog("Discussed " + topic[1]);
-        for (var _i = 0, _a = this.guests; _i < _a.length; _i++) {
-            var g = _a[_i];
-            var speech = g.speakAbout(topic);
+        var am = new ActionMemory("discuss", topic);
+        var bored = 0;
+        for (var _i = 0, _a = world.gameLog; _i < _a.length; _i++) {
+            var logItem = _a[_i];
+            if (logItem[1] instanceof ActionMemory && logItem[1].signature == am.signature) {
+                var dt = world.time - logItem[0];
+                bored += 1 / (1 + dt * 30);
+            }
+        }
+        log("bored", bored);
+        glog(am);
+        for (var _b = 0, _c = this.guests; _b < _c.length; _b++) {
+            var g = _c[_b];
+            var speech;
+            if (bored > random())
+                speech = new Speech(g, "bored");
+            else
+                speech = g.speakAbout(topic);
             speech.know();
             speech.affect(duration, this);
-            for (var _b = 0, _c = this.guests; _b < _c.length; _b++) {
-                var l = _c[_b];
+            for (var _d = 0, _e = this.guests; _d < _e.length; _d++) {
+                var l = _e[_d];
                 speech.affect(duration, l);
             }
             glog(speech);
@@ -280,6 +294,8 @@ var Character = (function (_super) {
                     }
                     else {
                         var hisSkill = randomNumberMap(char.skill);
+                        log(char.skill);
+                        assert(Skill.byId[hisSkill], "no skill named " + hisSkill);
                         return new Speech(this, "skill", Skill.byId[hisSkill], char);
                     }
                 }
@@ -299,7 +315,7 @@ var Character = (function (_super) {
             case "skill":
                 var skill = Skill.byId[detail];
                 if (this.skill[detail] > 1) {
-                    if (this.traits["Interested"] > random() * 2 + 1) {
+                    if (this.attention > random() * 2 + 1) {
                         return new Speech(this, "teachSkill", skill);
                     }
                     else {
@@ -376,13 +392,21 @@ var Character = (function (_super) {
     });
     return Character;
 }(Traited));
+var ActionMemory = (function () {
+    function ActionMemory(mode, details) {
+        this.mode = mode;
+        this.details = details;
+        this.signature = mode + " " + details.join(",");
+    }
+    return ActionMemory;
+}());
 var Speech = (function () {
     function Speech(speaker, theme, detail, more) {
         this.speaker = speaker;
         this.theme = theme;
         this.detail = detail;
         this.more = more;
-        assert(detail);
+        assert(detail || theme == "bored");
     }
     Speech.prototype.toString = function () {
         return this.speaker.name + " talked about " + this.theme + " " + this.detail + (this.more ? " " + this.more : "");
@@ -407,6 +431,7 @@ var Speech = (function () {
         var speaker = this.speaker;
         switch (this.theme) {
             case "teachSkill":
+                log("TEACHING");
                 if (listener == world.you) {
                     var skillId = this.detail.id;
                     var mySkill = speaker.skill[skillId] || 0;
@@ -422,12 +447,17 @@ var Speech = (function () {
             case "skill":
                 var skillId = this.detail.id;
                 var speakerSkill = speaker.skill[skillId] || 0;
-                var listenerSkill = speaker.skill[skillId] || 0;
+                var listenerSkill = listener.skill[skillId] || 0;
                 var combinedSkill = speakerSkill + listenerSkill;
                 listenerAttention += combinedSkill / 100;
                 if (speakerSkill > 0) {
-                    speaker.skill[skillId] += listenerSkill / 1000;
-                    listener.skill[skillId] += speakerSkill / 1000;
+                    listener.skill[skillId] = listenerSkill + speakerSkill / 100;
+                }
+                break;
+            case "bored":
+                if (listener == speaker) {
+                    listenerAttention += -0.05;
+                    speakerTired += 0.05;
                 }
                 break;
         }
@@ -451,7 +481,7 @@ var World = (function () {
         world = this;
         this.you = new Character("Elder");
         this.you.skill = { Foraging: 1, Generic: 1, Speaking: 1, Conservation: 1, Cooking: 1, Gardening: 1 };
-        this.you.traits = { Old: 10000000 };
+        this.you.traits = { Age: 10000000 };
         for (var pi in Profession.byId) {
             var profession = Profession.byId[pi];
             var gender = randi() % 2;
@@ -503,6 +533,7 @@ var World = (function () {
         this.time += dt;
         this.you.gainTrait("Hungry", dt);
         this.you.gainTrait("Tired", dt);
+        this.you.gainTrait("Age", dt);
         for (var cid in world.characters) {
             var c = world.characters[cid];
             if (c.isMyGuest()) {
@@ -648,6 +679,7 @@ var Command = (function () {
         if (this.id == "Rest") {
             world.advance(0.5);
         }
+        glog(new ActionMemory("command", [this.id].concat(subjects)));
         if (this.makes) {
             var nowHave = char.receive(this.makes);
             if (char == world.you)
@@ -703,6 +735,6 @@ function randomName(gender) {
 var category = {};
 var world;
 var freezer = new Freezer()
-    .addFreezableClasses(World, Character, Item, Speech)
-    .addStaticClasses(Profession, Skill, Trait, Primary, Command);
+    .addFreezableClasses(World, Character, Item, Speech, ActionMemory)
+    .addStaticClasses(Skill, Trait, Command);
 //# sourceMappingURL=world.js.map

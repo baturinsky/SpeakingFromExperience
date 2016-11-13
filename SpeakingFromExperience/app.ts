@@ -1,7 +1,10 @@
 ﻿function glog(s) {
-  world.gameLog.push(s)
+  world.gameLog.push([world.time, s])
   world.commandLog.push(s)
   log(s)
+  if (world.gameLog.length > 100) {
+    world.gameLog = world.gameLog.splice(10)
+  }
 }
 
 function resetWorld() {
@@ -27,6 +30,7 @@ function loadWorld(slot = 0) {
     var worldString: string = pako.inflate(paked, { to: 'string' }) as string
     world = freezer.thaw(worldString)
     world.char = world.you
+    log(world)
     return true
   }
 
@@ -77,7 +81,7 @@ function mPage(...args) {
   return m("div", { config: onRedraw, onclick: onPageClick },
     m("table[width=100%]",
       m("thead", m("tr",
-        m("td[width=50%]", m("input.subtleInput.xxlarge", bindPropWithAttr(world.you, "name"))),
+        m("td[width=66%]", m("input.subtleInput.xxlarge", bindPropWithAttr(world.you, "name"))),
         m("td.right",
           putInBetweens(
             ["main", "skills", "items", "people", "menu"].map((page) => m(`a[href='#/page/${page}']`, capitalize(page))),
@@ -87,7 +91,7 @@ function mPage(...args) {
       )),
       m("tr",
         m("td", m.apply(null, ["div"].concat(joinArrays(args)))),
-        m("td.log.right", m("div", world.gameLog.map((s) => m("div", toM(s)))))
+        m("td.log.right", m("div.log", world.gameLog.map((s) => m("div", toM(s[1])))))
       )
     )
   )
@@ -150,7 +154,7 @@ function smartRef(something) {
     return traitRef(something)
 }
 
-function toM(a) {
+function toM(a): Mithril.VirtualElement {
   if (typeof a === "string")
     return m("span", a)
   if (a instanceof Speech) {
@@ -165,17 +169,33 @@ function toM(a) {
         break
       case "skill":
         if (s.more == s.speaker)
-          tail = [charRef(s.speaker), " knows ", smartRef(s.detail)]
+          tail = [charRef(s.speaker), " talks about ", smartRef(s.detail)]
         else
           tail = [charRef(s.speaker), " says ", smartRef(s.more), " knows ", smartRef(s.detail)]
         break
       case "teachSkill":
         tail = [charRef(s.speaker), " teaches you some ", smartRef(s.detail)]
         break
+      case "bored":
+        tail = [charRef(s.speaker), " is bored with this theme"]
+        break
     }
     return m("span", tail)
   }
-  return a.toString()
+  if (a instanceof ActionMemory) {
+    var am = a as ActionMemory
+    switch (am.mode) {
+      case "discuss":
+        return m("span", "Discussed ", href("#/discuss/" + am.details[0] + "/" + am.details[1], am.details[1], "click to discuss " + am.details[1]))
+      case "command":
+        var params = [m("span", "Used "), commandRef(Command.byId[am.details[0]])]
+        if (am.details.length > 1) {
+          params = params.concat([span(" with ")], putInBetweens(am.details.slice(1).map((d) => itemRef(new Item(d))), ", "))
+        }
+        return m("span", params)
+    }
+  }
+  return m("span", a.toString())
 }
 
 function peopleTable(people:Character[], local:boolean = true) {
@@ -187,8 +207,8 @@ function peopleTable(people:Character[], local:boolean = true) {
         m("td", dot3(c.traits["Tired"] || 0))
       )
     td.push(
-      m("td", stickSeparated(c.knownSkills().map(skillRef))),
-      m("td", stickSeparated(c.knownInterests().map(traitRef)))
+      m("td", stickSeparated(c.knownSkills().map((s) => skillRef(s)))),
+      m("td", stickSeparated(c.knownInterests().map((t) => traitRef(t))))
     )
     if (!local) {
       if (c.isMyGuest())
@@ -273,10 +293,10 @@ var pageMenu = {
     var i:number
     for (i = 0; saveName = hasSave(i); i++) {
       saveList.push(m("tr", { style: "border-top:solid 1px gray" }),
-        m("td", m("a[href='#/load/" + i + "']", "Load")),
+        m("td", m("a[href='#/save/" + i + "']", i > 0 ? "Save" : "")),
         m("td", (i > 0 ? i.toString() : "Auto")),
         m("td[width=300px]", saveName),
-        m("td", m("a[href='#/save/" + i + "']", i > 0 ? "Save" : ""))
+        m("td", m("a[href='#/load/" + i + "']", "Load"))
       )
     }
     return mPage(

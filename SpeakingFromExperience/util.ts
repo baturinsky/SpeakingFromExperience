@@ -234,3 +234,7 @@ function randomNumberMap(nm: NumberMap):string {
   }
   return null
 }
+
+function span(x){
+  return m("span", x)
+}
